@@ -21,7 +21,10 @@ if(isset($_GET['action']))
   pars::markAsAnsweredDialog($_GET['access_token'],$_GET['id'],$_GET['answered']);
   break;
   case 'send':
-  pars::sendMessage($_GET['access_token'],$_GET['id'],$_GET['message']);
+  pars::sendMessage($_GET['access_token'],$_GET['id'],$_GET['message'],$_GET['attachment']);
+  break;
+  case 'getAttachments':
+  pars::getAttachments($_GET['access_token'],$_GET['id'],$_GET['media_type']);
   break;
   case 'load':
   foreach (pars::GetDialogHistory($_GET['access_token'],$_GET['id']) as $value) {
@@ -44,7 +47,27 @@ class pars {
     return $response;
   }
 
-  
+  public static function getAttachments($access_token,$id,$media_type){
+    $params = array(
+      'peer_id'=>$id,
+      'v' => '5.63',
+      'media_type'=>$media_type,
+      'access_token' => $access_token
+      );  
+    $url = 'https://api.vk.com/method/messages.getHistoryAttachments?' . http_build_query($params);
+    $items = json_decode(pars::cURL($url))->response->items;   
+
+    foreach ($items as $item) {
+      // print_r($item->attachment);
+      $rezult = pars::GetFile($item->attachment);
+      echo $rezult;
+    }
+
+                   // print_r($items) ;
+  }
+
+
+
     //получение полной инфы о юзере
   public static function GetUserInfo($user_id, $access_token) {
     $user = new Users();
@@ -158,6 +181,8 @@ class pars {
         }
         array_push($dialogs, $dialog);
       }
+     xml::generateValidXmlFromObj((object)$items,"dialogs","dialog");
+     file_put_contents('date/jsonFile.json',json_encode($items));
       return $dialogs;
     }
 
@@ -204,28 +229,34 @@ class pars {
         $message->user_id = $value->from_id;
         $message->body = $value->body;
         if(isset( $value->attachments))
-          $message->attachments = pars::GetFile($value->attachments);
-        if($value->read_state == 0)
-          $message->read_state = "unread";
-        array_push($dialogHistory, $message);
+          foreach ($value->attachments  as $item) {
+            $str = pars::GetFile($item);
+            $message->attachments = $message->attachments.$str;
+          }
+          if($value->read_state == 0)
+            $message->read_state = "unread";
+          array_push($dialogHistory, $message);
+        }
+        // $items  = (object)$items;
+        xml::generateValidXmlFromObj((object)$items,"messages","message");
+        file_put_contents('date/jsonFile.json',json_encode($items));
+        return $dialogHistory;
       }
-      return $dialogHistory;
-    }
         static function GetFile($attachments){//получение содержимого фйла в сообщении
           $str="";
-          foreach ($attachments  as $value) {
-            switch ($value->type) {
-              case 'photo':
-              $str=$str. '<a href="'.$value->photo->photo_604.'"><img src="'.$value->photo->photo_130.'">'.'</a><br>';
-              break;
-              case 'doc':
-              $str=$str. '<a href="'.$value->doc->url.'">'.$value->doc->title.'</a><br>';
-              break;
-              default:
-              $str=$str. "какая то фигня";
-              break;
-            }
+          
+          switch ($attachments->type) {
+            case 'photo':
+            $str='<a href="'.$attachments->photo->photo_604.'"><img src="'.$attachments->photo->photo_130.'">'.'</a>';
+            break;
+            case 'doc':
+            $str='<br><a href="'.$attachments->doc->url.'">'.$attachments->doc->title.'</a>';
+            break;
+            default:
+            $str="какая то фигня";
+            break;
           }
+          
           return $str;
         }
 
@@ -347,11 +378,12 @@ class pars {
         //       return $value->from_id;
         //     }
 
-            static function sendMessage($access_token,$id,$body){//отправить сообщение
+            static function sendMessage($access_token,$id,$body,$attachment){//отправить сообщение
               $params = array(
                 'peer_id'=>$id,
                 'v' => '5.63',
                 'message'=>$body,
+                'attachment'=>$attachment,
                 'access_token' => $access_token
                 );  
               $url = 'https://api.vk.com/method/messages.send?' . http_build_query($params);
@@ -365,10 +397,48 @@ class pars {
               $message->message_id = $id_message;
               $message->user_id = $group->screen_name;
               $message->read_state = "unread";  
+              $message ->attachments = '<div id="forAttachments"></div>';
               // if(is_int($id_message))         
               pars::constructMessage($message);
                   // print_r(pars::getById($access_token,$id_message));
-                 // echo pars::getById($access_token,$id_message);
+                 // echo $id_message;
             }
           }
-          ?>
+
+class xml{
+public static function generateValidXmlFromObj(stdClass $obj, $node_block='nodes', $node_name='node') {
+        $arr = get_object_vars($obj);
+        // return $arr;
+        $xml = self::generateValidXmlFromArray($arr, $node_block, $node_name);
+        file_put_contents('date/xmlFile.xml',$xml);
+    }
+
+    public static function generateValidXmlFromArray($array, $node_block='nodes', $node_name='node') {
+        $xml = '<?xml version="1.0" encoding="UTF-8" ?>';
+
+        $xml .= '<' . $node_block . '>';
+        $xml .= self::generateXmlFromArray($array, $node_name).' "\n" ';
+        $xml .= '</' . $node_block . '>';
+
+        return $xml;
+    }
+
+    private static function generateXmlFromArray($array, $node_name) {
+        $xml = '';
+
+        if (is_array($array) || is_object($array)) {
+            foreach ($array as $key=>$value) {
+                if (is_numeric($key)) {
+                    $key = $node_name;
+                }
+
+                $xml .= '<' . $key . '>' . self::generateXmlFromArray($value, $node_name) . '</' . $key . '>';
+            }
+        } else {
+            $xml = htmlspecialchars($array, ENT_QUOTES);
+        }
+
+        return $xml;
+    }
+}
+  ?>
