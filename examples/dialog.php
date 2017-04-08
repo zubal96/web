@@ -9,6 +9,8 @@
     <script src="Content/bootstrap.js"></script>    
     <script src="Content/scriptAll.js"></script>
     <script src="Content/script1.js"></script>
+
+
     <?php
     require 'config.php';
     require '../parsers/parser.php';
@@ -30,11 +32,10 @@
         <div class="row">
           <div class="col-md-8">
             <div class="panel">
-              <div class="panel-title text-center"> 
-                <h3>Сообщения</h3>
-              </div>
-              <div class="row panel-body">
-               <?php //print_r($dialogHistory);
+              <!-- <div class="panel-title text-center">  -->
+               <!-- </div> -->
+              <div class="row panel-body"> 
+               <?php // print_r($dialogHistory);
                //echo $dialogHistory;
                ;?>
                <div class="col-md-10" id="div1" >
@@ -86,7 +87,7 @@
                       <ul class="dropdown-menu">
                         <li>
                           <a  href="#"  onclick="">
-                            <span class="glyphicon glyphicon-th-large">Показать вложения</span>
+                            <span class="glyphicon glyphicon-th-large" data-toggle="modal" data-target="#myModal">Показать вложения</span>
                           </a>
                         </li>
                         <li>
@@ -123,18 +124,26 @@
         
 
         <div class="row panel-body">
-          <div class="col-md-12">
+          <div class="col-md-12" style="padding-bottom: 10px;">
             <textarea id="textArea" placeholder="Введите сообщение" class="form-control" rows="3"></textarea>
+          </div>
+          <div class="col-md-12">
+              <div class="col-md-9">
+              <form id="form1" action="upload.php?user_id=<?php echo $_GET['user_id'] ?>"  method=post enctype=multipart/form-data>
+                <input type=file name=uploadfile[] accept="image/*" onchange="$('#form1').submit()" multiple>
+              </form> 
+              </div>
+              <div class="col-md-3">
+                <button type="button" onclick="sendMessage()" class="btn btn-default">Отправить</button>
+              </div>
+              
+          </div>
+          <div class="col-md-12" id="attachment">
+          </div>
             </div>
-            <!-- <div class="col-md-4"> -->
-              <!-- <form action="javascript:void(null);" name="myForm" onsubmit="uploadFile()" method=post enctype=multipart/form-data>  -->
-              <!-- <input type=file id="myInp" onchange="uploadFile()" name=uploadfile> -->
-              <!-- <input type=submit class="pull-left" value=Загрузить></form> -->
-            
-            <!-- </div> -->
           </div>
         </div>
-      </div>
+    
       <div class="col-md-2">
         <div class="btn-group-vertical" style="padding:20px;">
           <button type="button" onclick="buttonClick('')" class="btn btn-default">Все сообщения</button>
@@ -145,8 +154,40 @@
       </div>
     </div>
   </div>
+
+  <div class="modal fade" id="myModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <button type="button" onclick="getAttachments('photo')" class="btn btn-default" >Фотографии</button>
+        <!-- <button type="button" onclick="getAttachments('video')" class="btn btn-default" >Видео</button> -->
+        <button type="button" onclick="getAttachments('doc')" class="btn btn-default" >Документы</button>
+        <!-- <button type="button" onclick="getAttachments('audio')" class="btn btn-default" >Музыка</button> -->
+      </div>
+      <div class="modal-body">
+        
+      </div>
+     <!--  <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Закрыть</button>
+        <button type="button" class="btn btn-primary">Сохранить изменения</button>
+      </div> -->
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
   <span id="token" token = <?php echo $_SESSION['token']->access_token_88212219 ?> ></span>
   <span id="user_id" user_id = <?php echo $_GET['user_id'] ?> ></span>
 </body>
 </html>
 
+<?php 
+    if(isset($_SESSION['attachment']))
+    {
+      echo "<script type='text/javascript'>
+          uploadFile('".$_SESSION['attachment']."','".$_SESSION['htmlCode']."')
+      </script>";
+      unset($_SESSION['attachment']);
+      unset($_SESSION['htmlCode']);
+    }
+
+?>

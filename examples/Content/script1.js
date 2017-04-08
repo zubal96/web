@@ -10,13 +10,13 @@ jQuery(document).ready(function ($) {
 	searchDiv = $(".search").detach(); 
 	allotDiv = $(".allot").detach();
 	defaultDiv = $(".default");
-	$("#textArea").keypress(function(e){
-		if(e.keyCode==13){
-			e.preventDefault();
-			sendMessage();
-		}
-	});
-// $('#myForm').submit()
+	// $("#textArea").keypress(function(e){
+	// 	if(e.keyCode==13){
+	// 		e.preventDefault();
+	// 		sendMessage();
+	// 	}
+	// });
+
 	$("#history").scroll(function(){
 		if(this.scrollTop==this.scrollHeight-this.clientHeight)
 		{
@@ -45,8 +45,11 @@ function loadMessage(id){
 
 
 function sendMessage(){
-	if($("#textArea").val()!="")
+	if(($("#textArea").val()!="")||($("#attachment>").length!=0))
 	{
+		var message = $("#textArea").val();
+		$("#textArea").val("");
+		var data=$("#attachment>").detach();
 		$.ajax({
 			url : '/parsers/parser.php' ,
 			method : 'GET' ,
@@ -54,12 +57,13 @@ function sendMessage(){
 				action : 'send',
 				id: user_id,
 				type: "message",
-				message: $("#textArea").val(),
+				message: message,
+				attachment:$("#attachment").attr("attachment"),
 				access_token: access_token
 			},
 			success: function(rez){
 				$("#myTable > tbody").prepend(rez);
-				$("#textArea").val("");
+				$("#forAttachments").replaceWith(data);
         	 // var t = rez;
         	}
         });
@@ -159,33 +163,28 @@ function restoreMessage(id,data){
         });
 
 }
-	function uploadFile(){
-	// alert(src);
-	// var form = $("#myForm")[0];
-	control = document.getElementById('myInp');
-	files = control.files,
-        len = files.length;
-              name = files[0].name;
-        type = files[0].type;
-        ret =files[0].getAsDataURL;
 
-	// var formData = new FormData(form);
-	// var t = $(form).serialize()
-	// formData.getAll();
-	// fd = new FormData(document.querySelector('#myForm'));
-	// fd.append('access_token',access_token);
-	// console.log(fd.getAll());
+function getAttachments(media_type)
+{
 	$.ajax({
-		url : 'upload.php' ,
+		url : '/parsers/parser.php' ,
 		method : 'GET' ,
-		data :  {
-			name: name,
-			type: type,
+		data : {
+			id: user_id,
+			action : 'getAttachments',
+			media_type:media_type,
 			access_token: access_token
 		},
 		success: function(rez){
-			t = rez;
-			}
+						$("div.modal-body").empty();
+           	$("div.modal-body").append(rez);
+          }
         });
-	// return false;
+}
+
+
+	function uploadFile(attachment,htmlCode){
+		$("#attachment").append(htmlCode);
+		$("#attachment").attr("attachment",attachment);
+		var z =$("#attachment");
 }
